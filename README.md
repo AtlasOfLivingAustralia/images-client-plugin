@@ -41,11 +41,13 @@ imgvwr.viewImage($("#viewerContainerId"), imageId, {custom options...});
 | attribution | '' | Text to show on attribution control. Make sure 'addAttribution' option is switched on.
 | addLikeDislikeButton | false | Add button to up and down vote and a help button.
 | disableLikeDislikeButton | false | Disable up and down vote buttons when user is not logged in.
-| likeUrl | '' | Url to call when a user up vote an image.
 | dislikeUrl | '' | Url to call when a user down vote an image.
+| likeUrl | '' | Url to call when a user up vote an image.
 | userRatingUrl | '' | Url to call to get the current voting on an image.
 | userRatingHelpText | '' | Text to display when help button is clicked.
 | galleryOptions | {...} | Check the gallery component documentation bellow :point_down:
+| showOnlyImage | false | Set this flag to true to view image passed by url. URL is set on parameter imageUrl.
+| imageUrl | '' | Set the url of image to display. Leaflet will only show image with tiling switched off. Make sure showOnlyImage flag is set.
 
 ### Viewer public methods
 | Method | Description

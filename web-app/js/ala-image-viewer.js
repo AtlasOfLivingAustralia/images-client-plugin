@@ -91,7 +91,9 @@ var imgvwr = {};
             enableGalleryMode: false,
             closeControlContent: null,
             showFullScreenControls: false
-        }
+        },
+        showOnlyImage: false,
+        imageUrl: ''
     };
 
     lib.getImageClientBaseUrl = function(){
@@ -115,33 +117,38 @@ var imgvwr = {};
     };
 
     lib.viewImage = function(targetDiv, imageId, scientificName, guid, options) {
-        _imageId = imageId;
-        _scientificName = scientificName;
-        _preferredImageStatus = false;
-        if(options.imageServiceBaseUrl){
-            lib.setImageServiceBaseUrl(options.imageServiceBaseUrl);
-        }
-        if(options.imageClientBaseUrl){
-            lib.setImageClientBaseUrl(options.imageClientBaseUrl);
-        }
+        var mergedOptions = mergeOptions(options, targetDiv, imageId);
 
-        var checkSpeciesList = null;
-
-        if (guid != undefined) {
-            checkSpeciesList = checkSpeciesImage(guid, imageId, options.getPreferredSpeciesListUrl)
-        } else if (scientificName != undefined) {
-            checkSpeciesList = checkSpeciesByNameImage(scientificName, imageId, options.getPreferredSpeciesListUrl)
-        }
-
-        // if checkSpeciesList is null, the promise is resolved immediately and resp is null: https://api.jquery.com/jquery.when/
-        $.when(checkSpeciesList).then(function (resp) {
-            if (resp != undefined) {
-                _preferredImageStatus = resp;
+        if(options.showOnlyImage) {
+            _viewImageageFromUrl(mergedOptions)
+        } else {
+            _imageId = imageId;
+            _scientificName = scientificName;
+            _preferredImageStatus = false;
+            if (options.imageServiceBaseUrl) {
+                lib.setImageServiceBaseUrl(options.imageServiceBaseUrl);
             }
-            var mergedOptions = mergeOptions(options, targetDiv, imageId);
-            initViewer(mergedOptions);
-        });
+            if (options.imageClientBaseUrl) {
+                lib.setImageClientBaseUrl(options.imageClientBaseUrl);
+            }
 
+            var checkSpeciesList = null;
+
+            if (guid != undefined) {
+                checkSpeciesList = checkSpeciesImage(guid, imageId, options.getPreferredSpeciesListUrl)
+            } else if (scientificName != undefined) {
+                checkSpeciesList = checkSpeciesByNameImage(scientificName, imageId, options.getPreferredSpeciesListUrl)
+            }
+
+            // if checkSpeciesList is null, the promise is resolved immediately and resp is null: https://api.jquery.com/jquery.when/
+            $.when(checkSpeciesList).then(function (resp) {
+                if (resp != undefined) {
+                    _preferredImageStatus = resp;
+                }
+
+                initViewer(mergedOptions);
+            });
+        }
     };
 
     lib.resizeViewer = function(targetDiv) {
@@ -208,7 +215,6 @@ var imgvwr = {};
     }
 
     function checkSpeciesByNameImage(scientificName, imageId, getPreferredSpeciesListUrl) {
-        debugger;
         return $.ajax( {
             dataType: 'jsonp',
             url: getPreferredSpeciesListUrl + "/ws/speciesListItem/getPreferredSpeciesImage",
@@ -243,81 +249,59 @@ var imgvwr = {};
         });
     }
 
-    function _createViewer(opts, image) {
-
-        _imageId = opts.imageId;
-        var maxZoom = image.tileZoomLevels ? image.tileZoomLevels - 1 : 0;
-
-        _imageScaleFactor =  Math.pow(2, maxZoom);
-        _imageHeight = image.height;
-
-        var centerx = image.width / 2 / _imageScaleFactor;
-        var centery = image.height / 2 / _imageScaleFactor;
-
-        var p1 = L.latLng(image.height / _imageScaleFactor, 0);
-        var p2 = L.latLng(0, image.width / _imageScaleFactor);
-        var bounds = new L.latLngBounds(p1, p2);
-
-        var measureControlOpts = false;
-
-        var drawnItems = new L.FeatureGroup();
-
-        _imageOverlays = new L.FeatureGroup();
-
-        if(opts.addCalibration) {
-            measureControlOpts = {
-                mmPerPixel: image.mmPerPixel,
-                imageScaleFactor: _imageScaleFactor,
-                imageWidth: image.width,
-                imageHeight: image.height,
-                hideCalibration: !opts.addCalibration,
-                onCalibration: function (pixels) {
-                    var opts = {
-                        url: imageClientUrl + "/imageClient/calibrateImage?id=" + _imageId + "&pixelLength=" + Math.round(pixels),
-                        title: 'Calibrate image scale'
-                    };
-                    lib.showModal(opts);
-                }
-            };
-        }
-
+    function _viewImageageFromUrl(opts) {
         var target = getTarget(opts.target);
-
-        // Check if this element has already been initialized as a leaflet viewer
-        if (map_registry[target]) {
-            // if so, we need to un-initialize it
-            map_registry[target].remove();
-            delete map_registry[target];
-        }
+        _removeMap(target);
 
         var viewer = L.map(target, {
             fullscreenControl: true,
-            measureControl: measureControlOpts,
-            minZoom: 2,
-            maxZoom: maxZoom,
-            zoom: getInitialZoomLevel(opts.initialZoom, maxZoom, image, opts.target),
-            center: new L.LatLng(centery, centerx),
+            minZoom: 1,
+            maxZoom: opts.maxZoom || 4,
+            zoom: 1,
+            center: [0, 0],
             crs: L.CRS.Simple
         });
 
         _viewer = viewer;
 
+        map_registry[target] = viewer;
+        var url = opts.imageUrl;
+
+        var image = new Image();
+        image.onload = function(){
+            // dimensions of the image
+            var w = this.width,
+                h = this.height;
+
+            // calculate the edges of the image, in coordinate space
+            var southWest = viewer.unproject([0, h], viewer.getMaxZoom()-1);
+            var northEast = viewer.unproject([w, 0], viewer.getMaxZoom()-1);
+            var bounds = new L.LatLngBounds(southWest, northEast);
+
+            // add the image overlay,
+            // so that it covers the entire map
+            L.imageOverlay(url, bounds).addTo(viewer);
+
+            // make sure small images are zoomed in to its original size
+            viewer.fitBounds(bounds);
+
+            // tell leaflet that the map is exactly as big as the image
+            viewer.setMaxBounds(bounds);
+        }
+
+        image.src = url;
+
+        _addControlsToMap(opts,viewer,opts);
+    }
+
+    function _addControlsToMap (opts, viewer, image) {
+        var drawnItems = new L.FeatureGroup();
+        _imageOverlays = new L.FeatureGroup();
+
         viewer.addLayer(drawnItems);
 
-        map_registry[target] = viewer;
-
-        var urlMask = image.tileUrlPattern;
-        L.tileLayer(urlMask, {
-            maxNativeZoom: maxZoom,
-            continuousWorld: true,
-            tms: true,
-            noWrap: true,
-            bounds: bounds,
-            attribution: 'Atlas of Living Australia'
-        }).addTo(viewer);
-
-        if (opts.addImageInfo){
-            var ImageInfoControl = L.Control.extend( {
+        if (opts.addImageInfo) {
+            var ImageInfoControl = L.Control.extend({
 
                 options: {
                     position: "bottomleft",
@@ -346,11 +330,11 @@ var imgvwr = {};
                     $(container).html("<a id='btnImageAuxInfo'  title='" + opts.auxDataTitle + "' href='#'><span class='fa fa-info'></span></a>");
                     $(container).find("#btnImageAuxInfo").click(function (e) {
                         e.preventDefault();
-                        $.ajax( {
+                        $.ajax({
                             dataType: 'jsonp',
                             url: opts.auxDataUrl,
                             crossDomain: true
-                        }).done(function(auxdata) {
+                        }).done(function (auxdata) {
                             var body = "";
                             if (auxdata.data) {
                                 body = '<table class="table table-condensed table-striped table-bordered">';
@@ -402,7 +386,7 @@ var imgvwr = {};
             viewer.addControl(new DownloadControl());
         }
 
-        if (opts.addDrawer){
+        if (opts.addDrawer) {
             // Initialise the draw control and pass it the FeatureGroup of editable layers
             var drawControl = new L.Control.Draw({
                 edit: {
@@ -427,7 +411,7 @@ var imgvwr = {};
 
             $(".leaflet-draw-toolbar").last().append('<a id="btnCreateSubimage" class="viewer-custom-buttons leaflet-disabled fa fa-picture-o" href="#" title="Draw a rectangle to create a sub image"></a>');
 
-            $("#btnCreateSubimage").click(function(e) {
+            $("#btnCreateSubimage").click(function (e) {
                 e.preventDefault();
 
                 var layers = drawnItems.getLayers();
@@ -466,7 +450,7 @@ var imgvwr = {};
                 var opts = {
                     title: "Create subimage",
                     url: url,
-                    onClose: function() {
+                    onClose: function () {
                         drawnItems.clearLayers();
                     }
                 };
@@ -490,9 +474,9 @@ var imgvwr = {};
             });
         }
 
-        if (opts.addSubImageToggle){
+        if (opts.addSubImageToggle) {
 
-           viewer.addLayer(_imageOverlays);
+            viewer.addLayer(_imageOverlays);
 
             var ViewSubImagesControl = L.Control.extend({
 
@@ -543,7 +527,7 @@ var imgvwr = {};
                                     }
                                 },
                                 error: function (data) {
-                                    if (data.status == 400 || data.status == 500 ) {
+                                    if (data.status == 400 || data.status == 500) {
                                         showAlert("An error occurred while saving metadata to image. " + data.responseText);
                                     } else {
                                         showAlert("An error occurred while saving metadata to image.");
@@ -565,7 +549,7 @@ var imgvwr = {};
 
         }
 
-        if (opts.addLikeDislikeButton){
+        if (opts.addLikeDislikeButton) {
             var helpControl;
             // block of code for like, dislike and help buttons
             var FeedbackControl = L.Control.extend({
@@ -580,7 +564,7 @@ var imgvwr = {};
                 onAdd: function (map) {
                     var self = this;
                     var container = L.DomUtil.create("div", "leaflet-bar leaflet-control");
-                    
+
                     $(container).html('<a id="leafletLikeButton" href="#" class="fa fa-thumbs-o-up fa-2" aria-hidden="true"></i>' +
                         '<a id="leafletDislikeButton" href="#" class="fa fa-thumbs-o-down fa-2" aria-hidden="true"></a>' +
                         '<a id="leafletLikeDislikeHelpButton" href="#" class="fa fa-question fa-2" aria-hidden="true" title="Show help text"></a>'
@@ -589,21 +573,21 @@ var imgvwr = {};
                     // like an image
                     $(container).find('#leafletLikeButton').on('click', function (event) {
                         event.preventDefault();
-                        if(self.options.disableButtons){
+                        if (self.options.disableButtons) {
                             return;
                         }
 
                         loadingControl.addLoader('like')
 
                         $.ajax({
-                            url:self.options.likeUrl,
+                            url: self.options.likeUrl,
                             success: function (data) {
-                                if(data.content.success){
+                                if (data.content.success) {
                                     setLikeButton()
                                     loadingControl.removeLoader('like')
                                 }
                             },
-                            error:function () {
+                            error: function () {
                                 loadingControl.removeLoader('like')
                             }
                         })
@@ -612,15 +596,15 @@ var imgvwr = {};
                     // dislike an image
                     $(container).find('#leafletDislikeButton').on('click', function (event) {
                         event.preventDefault();
-                        if(self.options.disableButtons){
+                        if (self.options.disableButtons) {
                             return;
                         }
 
                         loadingControl.addLoader('dislike')
                         $.ajax({
-                            url:self.options.dislikeUrl,
+                            url: self.options.dislikeUrl,
                             success: function (data) {
-                                if(data.content.success){
+                                if (data.content.success) {
                                     setDislikeButton()
                                     loadingControl.removeLoader('dislike')
                                 }
@@ -634,7 +618,7 @@ var imgvwr = {};
                     // help button
                     $(container).find('#leafletLikeDislikeHelpButton').on('click', function (event) {
                         // remove previous control created
-                        if(helpControl){
+                        if (helpControl) {
                             viewer.removeControl(helpControl);
                             helpControl = null;
                         }
@@ -649,7 +633,7 @@ var imgvwr = {};
                             onAdd: function (map) {
                                 var container = L.DomUtil.create("div", "leaflet-control-layers");
                                 this.container = container;
-                                var helpText =  this.options.userRatingHelpText || base_options.userRatingHelpText;
+                                var helpText = this.options.userRatingHelpText || base_options.userRatingHelpText;
                                 $(container).html('<div style="padding:10px; width: 200px;"><a href="#" class="user-rating-help-text-dialog pull-right" style="padding-left:10px;"><b style="color:black"><i class="fa fa-times"></i></b></a>' + helpText + "</div>");
                                 $(container).find('.user-rating-help-text-dialog').on('click', function (event) {
                                     viewer.removeControl(helpControl);
@@ -669,7 +653,7 @@ var imgvwr = {};
                     })
 
                     // show button status based on whether user is logged in.
-                    if(this.options.disableButtons){
+                    if (this.options.disableButtons) {
                         // disable buttons if user is not logged in
                         $(container).find('#leafletLikeButton').addClass('leaflet-disabled').attr('title', "You must be logged in");
                         $(container).find('#leafletDislikeButton').addClass('leaflet-disabled').attr('title', "You must be logged in");
@@ -679,7 +663,7 @@ var imgvwr = {};
                         this.options.userRatingUrl && $.ajax({
                             url: this.options.userRatingUrl,
                             success: function (data) {
-                                switch (data.success){
+                                switch (data.success) {
                                     case 'LIKE':
                                         setLikeButton()
                                         break;
@@ -716,7 +700,7 @@ var imgvwr = {};
                     var container = L.DomUtil.create("div", "leaflet-bar");
                     var $container = $(container);
                     $container.html('<a id="closeLeafletModalButton" href="#" class="">&times;</a>');
-                    $container.attr('title',"Close this dialog");
+                    $container.attr('title', "Close this dialog");
                     $container.find("#closeLeafletModalButton").click(function (e) {
                         e.preventDefault();
                         $(this).parents('.modal').modal('hide');
@@ -787,11 +771,11 @@ var imgvwr = {};
 
                         var previous = L.DomUtil.create('a', 'leaflet-control-previous', container);
                         previous.innerHTML = '<i class="fa fa-arrow-left" style="line-height:1.65;"></i>';
-                        previous.title ='Got to previous image';
+                        previous.title = 'Got to previous image';
 
                         var next = L.DomUtil.create('a', 'leaflet-control-next', container);
                         next.innerHTML = '<i class="fa fa-arrow-right" style="line-height:1.65;"></i>';
-                        next.title ='Got to next image';
+                        next.title = 'Got to next image';
 
                         return container;
                     }
@@ -826,6 +810,78 @@ var imgvwr = {};
                 $(document).trigger(e);
             });
         }
+    };
+
+    var _removeMap = function (target) {
+        // Check if this element has already been initialized as a leaflet viewer
+        if (map_registry[target]) {
+            // if so, we need to un-initialize it
+            map_registry[target].remove();
+            delete map_registry[target];
+        }
+    };
+
+    function _createViewer(opts, image) {
+
+        _imageId = opts.imageId;
+        var maxZoom = image.tileZoomLevels ? image.tileZoomLevels - 1 : 0;
+
+        _imageScaleFactor =  Math.pow(2, maxZoom);
+        _imageHeight = image.height;
+
+        var centerx = image.width / 2 / _imageScaleFactor;
+        var centery = image.height / 2 / _imageScaleFactor;
+
+        var p1 = L.latLng(image.height / _imageScaleFactor, 0);
+        var p2 = L.latLng(0, image.width / _imageScaleFactor);
+        var bounds = new L.latLngBounds(p1, p2);
+
+        var measureControlOpts = false;
+
+        if(opts.addCalibration) {
+            measureControlOpts = {
+                mmPerPixel: image.mmPerPixel,
+                imageScaleFactor: _imageScaleFactor,
+                imageWidth: image.width,
+                imageHeight: image.height,
+                hideCalibration: !opts.addCalibration,
+                onCalibration: function (pixels) {
+                    var opts = {
+                        url: imageClientUrl + "/imageClient/calibrateImage?id=" + _imageId + "&pixelLength=" + Math.round(pixels),
+                        title: 'Calibrate image scale'
+                    };
+                    lib.showModal(opts);
+                }
+            };
+        }
+
+        var target = getTarget(opts.target);
+        _removeMap(target);
+
+        var viewer = L.map(target, {
+            fullscreenControl: true,
+            measureControl: measureControlOpts,
+            minZoom: 2,
+            maxZoom: maxZoom,
+            zoom: getInitialZoomLevel(opts.initialZoom, maxZoom, image, opts.target),
+            center: new L.LatLng(centery, centerx),
+            crs: L.CRS.Simple
+        });
+
+        _viewer = viewer;
+        map_registry[target] = viewer;
+
+        var urlMask = image.tileUrlPattern;
+        L.tileLayer(urlMask, {
+            maxNativeZoom: maxZoom,
+            continuousWorld: true,
+            tms: true,
+            noWrap: true,
+            bounds: bounds,
+            attribution: 'Atlas of Living Australia'
+        }).addTo(viewer);
+
+        _addControlsToMap(opts, viewer, image);
     }
 
     /*
