@@ -16,8 +16,9 @@ L.Control.Measure = L.Control.extend({
 		return container;
 	},
     _calibrate : function(e) {
-        this.mmPerPixel = this.onCalibration(this._pixelDistance);
-        this._toggleMeasure();
+		console.log('_calibrate = ' + this.lastMeasurement);
+        this.mmPerPixel = this.onCalibration(this.lastMeasurement);
+        // this._toggleMeasure();
     },
     _disableCalibration: function() {
         $(".btnCalibrateMMPerPixels").addClass("leaflet-disabled");
@@ -50,6 +51,8 @@ L.Control.Measure = L.Control.extend({
 			L.DomUtil.removeClass(this._container, 'leaflet-control-measure-on');
 			this._stopMeasuring();
 		}
+
+		console.log('_toggleMeasure ' + this._pixelDistance);
 	},
 
 	_startMeasuring: function() {
@@ -69,6 +72,7 @@ L.Control.Measure = L.Control.extend({
 			this._layerPaint = L.layerGroup().addTo(this._map);	
 		}
 
+		console.log('_startMeasuring ' + this._pixelDistance);
 	},
 
 	_stopMeasuring: function() {
@@ -91,6 +95,11 @@ L.Control.Measure = L.Control.extend({
 		this._restartPath();
 
         this._disableCalibration();
+
+        console.log('_stopMeasuring ' + this._pixelDistance);
+        if( this._pixelDistance > 0) {
+			this.lastMeasurement = this._pixelDistance;
+		}
 	},
 
 	_mouseMove: function(e) {
@@ -188,6 +197,9 @@ L.Control.Measure = L.Control.extend({
 		// Save current location as last location
 		this._lastPoint = e.latlng;
         this._lastPixelPoint = this._getPixelPoint(e.latlng);
+
+		console.log('_mouseClick ' + this._pixelDistance);
+		this.lastMeasurement = this._pixelDistance;
 	},
 
 	_finishPath: function() {
@@ -283,14 +295,15 @@ L.Control.Measure = L.Control.extend({
         };
     },
     mmPerPixel: 0,
+	lastMeasurement:0,
     imageScaleFactor: 0,
     imageHeight: 0,
     imageWidth: 0,
     hideCalibration: false,
     onCalibration: function(pixelDistance) {
-        return 0;
+		console.log('onCalibration = ' + this._pixelDistance);
+        return this._pixelDistance;
     }
-
 });
 
 L.Map.mergeOptions({

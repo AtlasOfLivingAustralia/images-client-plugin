@@ -43,7 +43,7 @@ class ImagesClientPluginGrailsPlugin extends Plugin {
 
     Closure doWithSpring() {
         { ->
-            println("ImagesClientPluginGrailsPlugin starting")
+//            println("ImagesClientPluginGrailsPlugin starting")
         }
     }
 

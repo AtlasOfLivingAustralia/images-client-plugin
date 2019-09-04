@@ -254,16 +254,16 @@ var imgvwr = {};
     function initViewer(opts) {
         $.ajax( {
             dataType: 'jsonp',
-            url: imageServiceBaseUrl + "/ws/getImageInfo/" + _imageId,
+            url: imageServiceBaseUrl + "/ws/image/" + _imageId,
             crossDomain: true
         }).done(function(image) {
             if (image.success) {
                 _createViewer(opts, image);
             } else {
-                alert('Unable to load image from ' + imageServiceBaseUrl + "/ws/getImageInfo/" + _imageId)
+                alert('Unable to load image from ' + imageServiceBaseUrl + "/ws/image/" + _imageId)
             }
         }).fail(function(){
-            alert('Unable to load image from ' + imageServiceBaseUrl + "/ws/getImageInfo/" + _imageId)
+            alert('Unable to load image from ' + imageServiceBaseUrl + "/ws/image/" + _imageId)
         });
     }
 
@@ -288,7 +288,7 @@ var imgvwr = {};
 
         _imageOverlays = new L.FeatureGroup();
 
-        if(opts.addCalibration) {
+        if (opts.addCalibration) {
             measureControlOpts = {
                 mmPerPixel: image.mmPerPixel,
                 imageScaleFactor: _imageScaleFactor,
@@ -297,7 +297,7 @@ var imgvwr = {};
                 hideCalibration: !opts.addCalibration,
                 onCalibration: function (pixels) {
                     var opts = {
-                        url: imageClientUrl + "/imageClient/calibrateImage?id=" + _imageId + "&pixelLength=" + Math.round(pixels),
+                        url: imageClientUrl + "/imageClient/calibrateImage?id=" + _imageId + "&pixelLength=" + Math.round(pixels) + '&callback=calibrationCallback',
                         title: 'Calibrate image scale'
                     };
                     lib.showModal(opts);
@@ -349,7 +349,7 @@ var imgvwr = {};
                 },
                 onAdd: function (map) {
                     var container = L.DomUtil.create("div", "leaflet-bar");
-                    var detailsUrl = imageServiceBaseUrl + "/image/details/" + _imageId;
+                    var detailsUrl = imageServiceBaseUrl + "/image/" + _imageId;
                     $(container).html("<a href='" + detailsUrl + "' title='" + this.options.title + "'><span class='fa fa-external-link'></span></a>");
                     return container;
                 }
@@ -486,7 +486,7 @@ var imgvwr = {};
                 var height = maxy - miny;
                 var width = maxx - minx;
 
-                var url = imageClientUrl + "/imageClient/createSubImage?id=" + _imageId + "&x=" + minx + "&y=" + miny + "&width=" + width + "&height=" + height;
+                var url = imageClientUrl + "/imageClient/createSubImage?id=" + _imageId + "&x=" + minx + "&y=" + miny + "&width=" + width + "&height=" + height + "&callback=createSubImageCallback";
                 var opts = {
                     title: "Create subimage",
                     url: url,
@@ -914,7 +914,7 @@ var imgvwr = {};
                     feature.on("click", function(e) {
                         var imageId = e.target.options.imageId;
                         if (imageId) {
-                            window.location = imageServiceBaseUrl + "/image/details?imageId=" + imageId;
+                            window.location = imageServiceBaseUrl + "/image/" + imageId;
                         }
                     });
 
@@ -1048,7 +1048,6 @@ var imgvwr = {};
             html += '</div>';
         html += '</div>';
         $("body").append(html);
-        console.log(opts.url);
         $("#modal_content_" + opts.id).load(opts.url);
         $("#" + opts.id).modal('show');
     };

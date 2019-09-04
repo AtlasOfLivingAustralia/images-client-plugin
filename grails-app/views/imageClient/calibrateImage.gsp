@@ -5,8 +5,8 @@
 <div>
     <div class="control-group">
         <div class="controls">
-            <g:textField class="input-small" name="pixelLength" value="${params.pixelLength}"/> pixels =
-            <g:textField class="input-small" name="mmLength" value="" />
+            <g:textField class="form-control" name="pixelLength" value="${params.pixelLength}"/> pixels =
+            <g:textField class="form-control" name="mmLength" value="" />
             <g:select name="units" class="input-small" from="${['mm','inches', 'metres','feet']}" value="mm"/>
         </div>
     </div>
@@ -16,7 +16,7 @@
     <div class="control-group">
         <div class="controls">
             <button class="btn btn-primary" id="btnCalibrateImageScale">Save</button>
-            <button class="btn" id="btnCancelCalibrateImageScale">Cancel</button>
+            <button class="btn btn-default" id="btnCancelCalibrateImageScale">Cancel</button>
         </div>
     </div>
     <script type="text/javascript">
@@ -33,6 +33,9 @@
             $.ajax(imgvwr.getImageServiceBaseUrl() + "/ws/calibrateImageScale?imageId=${params.id}&units=${params.units}&pixelLength=" + pixelLength + "&userId=${userId}&actualLength=" + actualLength).done(function(data) {
                 imgvwr.setPixelLength(data.pixelsPerMM);
                 imgvwr.hideModal();
+                <g:if test="${params.callback}">
+                ${params.callback}(data.pixelsPerMM);
+                </g:if>
             });
         });
     </script>
