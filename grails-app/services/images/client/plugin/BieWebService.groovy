@@ -37,7 +37,7 @@ class BieWebService {
         try {
             HttpClient client = new HttpClient();
             PostMethod post = new PostMethod(url);
-            post.setRequestHeader('Authorization', grailsApplication.config.bieApiKey)
+            post.setRequestHeader('Authorization', grailsApplication.config.bieService.apiKey)
             StringRequestEntity requestEntity = new StringRequestEntity(jsonBody, "application/json", "utf-8")
             post.setRequestEntity(requestEntity)
             int status = client.executeMethod(post);
