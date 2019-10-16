@@ -1,6 +1,5 @@
 package images.client.plugin
 
-import au.org.ala.web.AuthService
 import grails.config.Config
 import grails.core.support.GrailsConfigurationAware
 
@@ -9,8 +8,6 @@ import grails.core.support.GrailsConfigurationAware
  *
  */
 class ImageClientTagLib implements GrailsConfigurationAware {
-
-    AuthService authService
     static namespace = 'imageClient'
 
     List<String> allowedRoles = []
