@@ -121,8 +121,11 @@ class ImageClientController {
             if (params.id && params.scientificName) {
                 result = speciesListWebService.saveImageToSpeciesList(params.scientificName, params.family, params.id)
                 if (result.status == HttpStatus.SC_OK || result.status == HttpStatus.SC_CREATED || result.status == HttpStatus.SC_ACCEPTED) {
-                    result = bieWebService.updateBieIndex(result.data)
-                }
+                    if (result.data.every { it?.guid != null })
+                        result = bieWebService.updateBieIndex(result.data)
+                    else
+                        result = [status: HttpStatus.SC_CONFLICT, text: "Species list unable to match '${params.scientificName}'. The name/image has been stored in the list but is not available as a preferred image."]
+                 }
             } else {
                 result = [status: HttpStatus.SC_BAD_REQUEST, text: "Save image to species list failed. Missing parameter id or scientific name. This should not happen. Please refresh and try again."]
             }
