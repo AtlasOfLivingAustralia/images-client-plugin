@@ -15,7 +15,7 @@ class ImageClientTagLib implements GrailsConfigurationAware {
     @Override
     void setConfiguration(Config config) {
         def roleList = config.getProperty("allowedImageEditingRoles", "")
-        allowedRoles = roleList ? roleList.split(",") : []
+        allowedRoles = roleList ? roleList.split(",").collect({ it.trim() }) : []
     }
 /**
      *
