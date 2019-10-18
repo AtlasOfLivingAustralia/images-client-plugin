@@ -169,10 +169,20 @@ var defaultOptions = {
 All those can be overridden when creating the `GalleryWidget` instance.
 
 ### Configuration
+
+The configuration options allow images to be marked as preferred by commmunicating with the
+lists server, which maintains a persistent list of preferred images and the BIE index, whuich
+records the current preferred image for a taxon.
+The user needs to be logghed in and have the appropriate roles to prefer images.
+Note this can get a bit tricky, since a successful prefer updates two services and there's
+plenty of room for authentication errors.
+
 | Config | Description
 | ------ | -----------
 | speciesList.baseURL | SpeciesList BaseURL (eg: https://lists.ala.org.au)
+| speciesList.apiKey | API key for the species list web service
 | bieService.baseUrl | Bie Index BaseURL (eg: http://bie.ala.org.au/ws)
+| bieService.apiKey | API key for the BIE index
 | speciesList.preferredSpeciesListDruid | Preferred Species List Druid (eg: dr4778)
 | speciesList.preferredListName | Preferred Species List Name (eg: ALA Preferred Species Images)
 | allowedImageEditingRoles | User roles for users to be able to nominate preferred image for species. (eg: ROLE_ADMIN,ROLE_USER)

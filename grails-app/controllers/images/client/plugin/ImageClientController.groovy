@@ -100,11 +100,16 @@ class ImageClientController {
     }
 
     def getPreferredSpeciesImageList() {
-        def list = speciesListWebService.getPreferredImageSpeciesList ()
-        if (!list) {
-            list = new ArrayList<String> ()
+        try {
+            def list = speciesListWebService.getPreferredImageSpeciesList()
+            if (!list) {
+                list = new ArrayList<String>()
+            }
+            render text: list as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+        } catch (Exception ex) {
+            log.error("An error occurred while getting the preferred species image list", ex)
+            render text: "An error occurred while getting the preferred species image list.", status: HttpStatus.SC_INTERNAL_SERVER_ERROR
         }
-        render text: list as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
     }
 
     def saveImageToSpeciesList() {
@@ -114,11 +119,13 @@ class ImageClientController {
             render status: HttpStatus.SC_BAD_REQUEST, text: "You must be logged in"
         } else {
             if (params.id && params.scientificName) {
-                def cookies = request.getHeader('Cookie')
-                result = speciesListWebService.saveImageToSpeciesList(params.scientificName, params.id, cookies)
-                if (result.status == 200) {
-                    result = bieWebService.updateBieIndex(result.data)
-                }
+                result = speciesListWebService.saveImageToSpeciesList(params.scientificName, params.family, params.id)
+                if (result.status == HttpStatus.SC_OK || result.status == HttpStatus.SC_CREATED || result.status == HttpStatus.SC_ACCEPTED) {
+                    if (result.data.every { it?.guid != null })
+                        result = bieWebService.updateBieIndex(result.data)
+                    else
+                        result = [status: HttpStatus.SC_CONFLICT, text: "Species list unable to match '${params.scientificName}'. The name/image has been stored in the list but is not available as a preferred image."]
+                 }
             } else {
                 result = [status: HttpStatus.SC_BAD_REQUEST, text: "Save image to species list failed. Missing parameter id or scientific name. This should not happen. Please refresh and try again."]
             }

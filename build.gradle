@@ -10,7 +10,7 @@ buildscript {
     }
 }
 
-version "1.1"
+version "1.2"
 group "au.org.ala.plugins.grails"
 
 apply plugin:"eclipse"
@@ -60,7 +60,7 @@ dependencies {
     }
 
     //plugins
-    compile "org.grails.plugins:ala-auth:3.0.2"
+    compile group: "org.grails.plugins", name: "ala-auth", version: "3.1.2", changing: true
 }
 
 bootRun {
