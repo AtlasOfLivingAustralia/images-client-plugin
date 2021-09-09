@@ -8,6 +8,8 @@ The grails2 branch contains the 0.8.x series of the plugin compatible with Grail
 
 The master branch hosts version 1.x and forward of the plugin compatible with grails 3.x
 
+The grails4 branch contains the 1.3.x series of the plugin compatible with Grails 4.12
+
 
 ## Usage
 
