@@ -20,6 +20,7 @@ apply plugin:"org.grails.grails-gsp"
 apply plugin:"maven-publish"
 
 repositories {
+    mavenLocal()
     maven { url "https://repo.grails.org/grails/core" }
     maven { url "https://nexus.ala.org.au/content/groups/public/" }
 }
@@ -69,6 +70,12 @@ dependencies {
     //plugins
     compile group: "org.grails.plugins", name: "ala-auth", version: "3.2.3", changing: true
 
+}
+
+assets {
+    minifyJs = true
+    minifyCss = true
+    packagePlugin = true
 }
 
 bootRun {
