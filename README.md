@@ -48,7 +48,7 @@ imgvwr.viewImage($("#viewerContainerId"), imageId, {custom options...});
 | addCloseButton | false | Add a control to dismiss bootstrap modal dialog.
 | addAttribution | false | Add a control to show image attribution. The text to show is passed on 'attribution' option.
 | attribution | '' | Text to show on attribution control. Make sure 'addAttribution' option is switched on.
-| addPreferrenceButton | false | Disabled if user role is not part of the configured role list in config file.   allowedImageEditingRoles=
+| addPreferenceButton | false | Disabled if user role is not part of the configured role list in config file.   allowedImageEditingRoles=
 | addLikeDislikeButton | false | Add button to up and down vote and a help button.
 | disableLikeDislikeButton | false | Disable up and down vote buttons when user is not logged in.
 | likeUrl | '' | Url to call when a user up vote an image.
