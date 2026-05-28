@@ -377,7 +377,7 @@ var imgvwr = {};
                         }).done(function(auxdata) {
                             var body = "";
                             if (auxdata.data) {
-                                body = '<table class="table table-condensed table-striped table-bordered">';
+                                body = '<table class="table table-striped table-bordered">';
                                 for (var key in auxdata.data) {
                                     body += '<tr><td>' + key + '</td><td>' + auxdata.data[key] + '</td></tr>';
                                 }
@@ -671,7 +671,7 @@ var imgvwr = {};
                                 var container = L.DomUtil.create("div", "leaflet-control-layers");
                                 this.container = container;
                                 var helpText =  this.options.userRatingHelpText || base_options.userRatingHelpText;
-                                $(container).html('<div style="padding:10px; width: 200px;"><a href="#" class="user-rating-help-text-dialog pull-right" style="padding-left:10px;"><b style="color:black"><i class="fa fa-times"></i></b></a>' + helpText + "</div>");
+                                $(container).html('<div style="padding:10px; width: 200px;"><a href="#" class="user-rating-help-text-dialog float-end" style="padding-left:10px;"><b style="color:black"><i class="fa fa-times"></i></b></a>' + helpText + "</div>");
                                 $(container).find('.user-rating-help-text-dialog').on('click', function (event) {
                                     viewer.removeControl(helpControl);
                                     helpControl = null;
@@ -780,7 +780,7 @@ var imgvwr = {};
 
                     onAdd: function (map) {
                         var options = this.options;
-                        var hiddenClass = window.fullScreenApi.isFullScreen() ? 'hidden' : '';
+                        var hiddenClass = window.fullScreenApi.isFullScreen() ? 'd-none' : '';
                         var container = L.DomUtil.create('div', 'leaflet-control-close-popup leaflet-bar leaflet-control ' + hiddenClass);
                         var link = L.DomUtil.create('a', '', container);
                         link.innerHTML = options.content;
@@ -803,7 +803,7 @@ var imgvwr = {};
                         position: 'topright'
                     },
                     onAdd: function () {
-                        var hiddenClass = window.fullScreenApi.isFullScreen() ? '' : 'hidden';
+                        var hiddenClass = window.fullScreenApi.isFullScreen() ? '' : 'd-none';
                         var container = L.DomUtil.create('div', 'leaflet-gallery-control-bar leaflet-bar leaflet-control leaflet-bar-horizontal ' + hiddenClass, this._control);
 
                         var previous = L.DomUtil.create('a', 'leaflet-control-previous', container);
@@ -825,11 +825,11 @@ var imgvwr = {};
             $(document).off(window.fullScreenApi.fullScreenEventName);
             $(document).on(window.fullScreenApi.fullScreenEventName, function (e) {
                 if (window.fullScreenApi.isFullScreen()) {
-                    $('.leaflet-control-close-popup').addClass('hidden');
-                    $('.leaflet-gallery-control-bar').removeClass('hidden');
+                    $('.leaflet-control-close-popup').addClass('d-none');
+                    $('.leaflet-gallery-control-bar').removeClass('d-none');
                 } else {
-                    $('.leaflet-control-close-popup').removeClass('hidden');
-                    $('.leaflet-gallery-control-bar').addClass('hidden');
+                    $('.leaflet-control-close-popup').removeClass('d-none');
+                    $('.leaflet-gallery-control-bar').addClass('d-none');
                 }
             });
 
@@ -859,7 +859,7 @@ var imgvwr = {};
                 <div class="modal-body">
                     <div id="alertContent"></div>
                     <!-- dialog buttons -->
-                    <div class="modal-footer"><button type="button" class="btn btn-primary" data-dismiss="modal">OK</button></div>
+                    <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div>
                 </div>
             </div><!-- /.modal-content -->
          </div><!-- /.modal-dialog -->
@@ -1043,7 +1043,7 @@ var imgvwr = {};
                     }
                     html += '</div>';
                     html += "<div  id='modal_content_" + opts.id + "' class='modal-body' >" + initialContent + "</div>";
-                    html += '<div class="modal-footer"><button type="button" class="btn btn-default" data-dismiss="modal">Close</button></div>';
+                    html += '<div class="modal-footer"><button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button></div>';
                 html += '</div>';
             html += '</div>';
         html += '</div>';
