@@ -1,11 +1,13 @@
-<g:uploadForm class="form-horizontal" name="csvFileUploadForm" >
-    <div class="well">
-        The file must contain column headings, and must have at least one column called <code>imageUrl</code> which contains a url to an image. Data in other columns will be stored as metadata against the image.
-    </div>
-    <div class="control-group">
-        <label class="control-label" for="imagefile">Select a file</label>
-        <div class="controls">
-            <input type="file" name="csvfile" id="imagefile"/>
+<g:uploadForm name="csvFileUploadForm" >
+    <div class="card">
+        <div class="card-body">
+            The file must contain column headings, and must have at least one column called <code>imageUrl</code> which contains a url to an image. Data in other columns will be stored as metadata against the image.
+        </div>
+        <div>
+            <label class="form-label" for="imagefile">Select a file</label>
+            <div>
+                <input type="file" name="csvfile" id="imagefile"/>
+            </div>
         </div>
     </div>
 
@@ -13,9 +15,9 @@
 
     </div>
 
-    <div class="control-group">
+    <div class="mb-3">
         <div class="controls">
-            <button type="button" class="btn" id="btnCancelCSVFileUpload">Cancel</button>
+            <button type="button" class="btn btn-outline-dark" id="btnCancelCSVFileUpload">Cancel</button>
             <button type="button" class="btn btn-primary" id="btnUploadCSVImagesFile">Upload</button>
         </div>
     </div>
@@ -68,7 +70,7 @@
                     type: 'POST'
                 }).done(function(result) {
                     if (!result.success) {
-                        $("#resultsDiv").html('<div class="alert alert-error">' + result.message + '</div>').css("display", "block");
+                        $("#resultsDiv").html('<div class="alert alert-danger">' + result.message + '</div>').css("display", "block");
                     } else {
                         $("#resultsDiv").html('<div class="alert alert-success">' + result.message + '</div>').css("display", "block");
                         renderProgress(result.batchId);
