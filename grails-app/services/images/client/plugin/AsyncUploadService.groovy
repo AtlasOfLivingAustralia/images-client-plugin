@@ -1,6 +1,6 @@
 package images.client.plugin
 
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
