@@ -17,7 +17,7 @@ class SpeciesListWebService {
     def authService
 
     private String getServiceUrl() {
-        def url = grailsApplication.config.speciesList?.baseURL?:grailsApplication.config.speciesList?.baseUrl?:null
+        def url = grailsApplication.config.getProperty('speciesList.baseURL') ?: grailsApplication.config.getProperty('speciesList.baseUrl') ?: null
         if (url && !url.endsWith("/")) {
             url += "/"
         } else if (!url) {
@@ -27,11 +27,11 @@ class SpeciesListWebService {
     }
 
     private getSpeciesListDruid() {
-        return grailsApplication.config.speciesList.preferredSpeciesListDruid ? grailsApplication.config.speciesList.preferredSpeciesListDruid : "dr4778"
+        return grailsApplication.config.getProperty('speciesList.preferredSpeciesListDruid', String, "dr4778")
     }
 
     private getSpeciesListName() {
-        return grailsApplication.config.speciesList.preferredListName ? grailsApplication.config.speciesList.preferredListName : "ALA Preferred Species Images"
+        return grailsApplication.config.getProperty('speciesList.preferredListName', String, "ALA Preferred Species Images")
     }
 
     @Cacheable("speciesListKvp")
@@ -40,7 +40,7 @@ class SpeciesListWebService {
         String url = getServiceUrl() + "ws/speciesListItemKvp/" + druid
         log.info("Calling species list web service: " + getServiceUrl() + "ws/speciesListItemKvp/" + druid)
         List results = []
-        def result = get(url,  grailsApplication.config.speciesList.apiKey)
+        def result = get(url,  grailsApplication.config.getProperty('speciesList.apiKey'))
         if (result.status != HttpStatus.SC_OK) {
             throw new IOException(result.text)
         }
@@ -70,7 +70,7 @@ class SpeciesListWebService {
                 itemName: scientificName, kvpValues: kvpValues
         ]
         Map body = [listName: listNameVal, listItems: [listMap], replaceList: false]
-        def response = post(url, body, grailsApplication.config.speciesList.apiKey)
+        def response = post(url, body, grailsApplication.config.getProperty('speciesList.apiKey'))
         return [status: response.status, text: response.text, data: response.data?.data]
     }
 

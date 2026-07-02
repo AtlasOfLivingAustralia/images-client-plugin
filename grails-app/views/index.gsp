@@ -12,7 +12,7 @@
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Application Status <span class="caret"></span></a>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="#">Environment: ${grails.util.Environment.current.name}</a></li>
-                <li><a class="dropdown-item" href="#">App profile: ${grailsApplication.config.grails?.profile}</a></li>
+                <li><a class="dropdown-item" href="#">App profile: ${grailsApplication.config.getProperty('grails.profile')}</a></li>
                 <li><a class="dropdown-item" href="#">App version:
                     <g:meta name="info.app.version"/></a>
                 </li>

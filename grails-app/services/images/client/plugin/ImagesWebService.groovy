@@ -10,7 +10,7 @@ class ImagesWebService {
     def grailsApplication
 
     private String getServiceUrl() {
-        def url = grailsApplication.config.ala.image.service.url ?: "http://devt.ala.org.au:8080/ala-images"
+        def url = grailsApplication.config.getProperty('ala.image.service.url', String, "http://devt.ala.org.au:8080/ala-images")
         if (!url.endsWith("/")) {
             url += "/"
         }
@@ -143,7 +143,7 @@ class ImagesWebService {
      * @return
      */
     Map getImageInfo(String id){
-        String getImageInfoUrl = "${grailsApplication.config.image.baseUrl}/ws/getImageInfo?id=${id}&includeMetadata=true"
+        String getImageInfoUrl = "${grailsApplication.config.getProperty('image.baseUrl')}/ws/getImageInfo?id=${id}&includeMetadata=true"
         return getJSON(getImageInfoUrl);
     }
 
@@ -181,7 +181,7 @@ class ImagesWebService {
      * {"error":null,"resp":{"success":true}}
      */
     Map updateUserMetadataOnImage(String id, Map data){
-        String url = "${grailsApplication.config.image.baseUrl}/ws/bulkAddUserMetadataToImage?id=${id}"
+        String url = "${grailsApplication.config.getProperty('image.baseUrl')}/ws/bulkAddUserMetadataToImage?id=${id}"
         postJSON(url,data)
     }
 
