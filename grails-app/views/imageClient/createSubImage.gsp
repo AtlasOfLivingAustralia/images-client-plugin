@@ -2,23 +2,23 @@
     <p id="mandatoryFieldsRequest">Please supply a title and description</p>
     <div>
         <form>
-            <div class="form-group">
-                <label for="title">
+            <div class="mb-3">
+                <label for="title" class="form-label">
                     Title*
                 </label>
-                <input id="title" type="text" class="form-control input-xlarge" name="title" value=""/>
+                <input id="title" type="text" class="form-control" name="title" value=""/>
             </div>
 
-            <div class="form-group">
-                <label for="description">
+            <div class="mb-3">
+                <label for="description" class="form-label">
                     Description*
                 </label>
-                <input id="description" type="text" class="form-control input-xlarge" name="description" value=""/>
+                <input id="description" type="text" class="form-control" name="description" value=""/>
             </div>
         </form>
-        <div class="control-group">
-            <btn class="btn btn-default" id="btnCancelSubimage">Cancel</btn>
-            <btn class="btn btn-primary" id="btnCreateSubimage2">Create subimage</btn>
+        <div>
+            <button class="btn btn-outline-dark" id="btnCancelSubimage">Cancel</button>
+            <button class="btn btn-primary" id="btnCreateSubimage2">Create subimage</button>
         </div>
     </div>
     <script type="text/javascript">
@@ -34,7 +34,12 @@
             if ($('#description').val().length == 0 || $('#title').val().length == 0){
                 $('#mandatoryFieldsRequest').addClass('alert alert-danger');
             } else {
-                var url = imgvwr.getImageServiceBaseUrl() + "/ws/createSubimage?id=${params.id}&x=${params.x}&y=${params.y}&width=${params.width}&height=${params.height}&userId=${userId}&description=" + encodeURIComponent($('#description').val()) + "&title=" + encodeURIComponent($('#title').val());
+                var baseUrl = imgvwr.getImageServiceBaseUrl()
+                // Remove trailing slash if exists
+                if (baseUrl.endsWith('/')) {
+                    baseUrl = baseUrl.slice(0, -1);
+                }
+                var url = baseUrl + "/ws/createSubimage?id=${params.id}&x=${params.x}&y=${params.y}&width=${params.width}&height=${params.height}&userId=${userId}&description=" + encodeURIComponent($('#description').val()) + "&title=" + encodeURIComponent($('#title').val());
                 $.ajax(url).done(function (results) {
                     if (results.success) {
                         imgvwr.hideModal();

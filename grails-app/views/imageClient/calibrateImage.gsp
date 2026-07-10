@@ -1,23 +1,19 @@
-<div>
+<div class="mb-3">
     How long is the line you just drew on the image?
 </div>
-<br/>
-<div>
-    <div class="control-group">
-        <div class="controls">
-            <g:textField class="form-control" name="pixelLength" value="${params.pixelLength}"/> pixels =
-            <g:textField class="form-control" name="mmLength" value="" />
-            <g:select name="units" class="input-small" from="${['mm','inches', 'metres','feet']}" value="mm"/>
-        </div>
+
+<div class="mb-4">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <g:textField class="form-control" name="pixelLength" value="${params.pixelLength}"/> pixels =
+        <g:textField class="form-control" name="mmLength" value="" />
+        <g:select name="units" class="form-select form-select-sm" from="${['mm','inches', 'metres','feet']}" value="mm"/>
     </div>
 </div>
 <br/>
 <div>
-    <div class="control-group">
-        <div class="controls">
-            <button class="btn btn-primary" id="btnCalibrateImageScale">Save</button>
-            <button class="btn btn-default" id="btnCancelCalibrateImageScale">Cancel</button>
-        </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" id="btnCalibrateImageScale">Save</button>
+        <button class="btn btn-outline-dark" id="btnCancelCalibrateImageScale">Cancel</button>
     </div>
     <script type="text/javascript">
         $("#btnCancelCalibrateImageScale").click(function(e) {
