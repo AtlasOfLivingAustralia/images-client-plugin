@@ -83,3 +83,17 @@
 .leaflet-control-close-popup a > i {
     color: #000;
 }
+
+.image-tags-popover {
+    --bs-popover-max-width: 600px;
+    --bs-popover-border-width: 4px;
+    --bs-popover-border-color: #e66542;
+    --bs-popover-border-radius: 5px;
+    --bs-popover-bg: white;
+    --bs-popover-body-color: black;
+}
+
+.image-tags-popover .popover-body {
+    padding: 8px;
+    text-align: left;
+}

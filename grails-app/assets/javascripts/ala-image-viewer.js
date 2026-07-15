@@ -1152,19 +1152,40 @@ var imgvwr = {};
 
     lib.bindImageTagTooltips = function() {
         $(".image-tags-button").each(function() {
-            var imageId = $(this).closest("[imageId]").attr("imageId");
+            var element = this;
+            var imageId = $(element).closest("[imageId]").attr("imageId");
             if (imageId) {
-                $(this).qtip({
-                    content: {
-                        text: function(event, api) {
-                            $.ajax(imageServiceBaseUrl + "/image/imageTagsTooltipFragment/" + imageId).then(function(content) {
-                                    api.set("content.text", content);
-                                },
-                                function(xhr, status, error) {
-                                    api.set("content.text", status + ": " + error);
-                                });
-                        }
-                    }
+                var existingPopover = bootstrap.Popover.getInstance(element);
+
+                if (existingPopover) {
+                    existingPopover.dispose();
+                }
+
+                const popover = new bootstrap.Popover(element, {
+                    content: "Loading...",
+                    html: true,
+                    sanitize: false,
+                    placement: "top",
+                    trigger: "click",
+                    container: "body",
+                    customClass: "image-tags-popover"
+                });
+
+                element.addEventListener("show.bs.popover", function () {
+                    popover.setContent({
+                        ".popover-body": "Loading..."
+                    });
+                    $.ajax(imageServiceBaseUrl + "/image/imageTagsTooltipFragment/" + imageId)
+                        .done(function (content) {
+                            popover.setContent({
+                                ".popover-body": content
+                            });
+                        })
+                        .fail(function (xhr, status, error) {
+                            popover.setContent({
+                                ".popover-body": status + ": " + error
+                            });
+                        });
                 });
             }
         });
@@ -1203,61 +1224,46 @@ var imgvwr = {};
         spinner.css("display", "none");
     };
 
-    lib.bindTooltips = function(selector, width) {
+    lib.bindTooltips = function(selector) {
 
         if (!selector) {
             selector = "a.fieldHelp";
         }
-        if (!width) {
-            width = 300;
-        }
         // Context sensitive help popups
         $(selector).each(function() {
+            var element = this;
+            var $element = $(this);
 
-
-            var tooltipPosition = $(this).attr("tooltipPosition");
-            if (!tooltipPosition) {
-                tooltipPosition = "bottomRight";
+            var placement = $(this).attr("placement");
+            if (!placement) {
+                placement = "top";
             }
 
-            var targetPosition = $(this).attr("targetPosition");
-            if (!targetPosition) {
-                targetPosition = "topMiddle";
-            }
-            var tipPosition = $(this).attr("tipPosition");
-            if (!tipPosition) {
-                tipPosition = "bottomRight";
+            // Avoid initializing the same element more than once
+            var existingTooltip = bootstrap.Tooltip.getInstance(element);
+
+            if (existingTooltip) {
+                existingTooltip.dispose();
             }
 
-            var elemWidth = $(this).attr("width");
-            if (elemWidth) {
-                width = elemWidth;
-            }
-
-            $(this).qtip({
-                tip: true,
-                position: {
-                    corner: {
-                        target: targetPosition,
-                        tooltip: tooltipPosition
-                    }
-                },
-                style: {
-                    width: width,
-                    padding: 8,
-                    background: 'white', //'#f0f0f0',
-                    color: 'black',
-                    textAlign: 'left',
-                    border: {
-                        width: 4,
-                        radius: 5,
-                        color: '#E66542'// '#E66542' '#DD3102'
-                    },
-                    tip: tipPosition,
-                    name: 'light' // Inherit the rest of the attributes from the preset light style
+            new bootstrap.Popover(element, {
+                container: "body",
+                placement: placement,
+                trigger: "click",
+                html: true,
+                customClass: "image-tags-popover",
+                content: function() {
+                    return $element.attr("data-bs-content") ||
+                        $element.attr("data-content") ||
+                        $element.attr("title") ||
+                        "";
                 }
-            }).bind('click', function(e){ e.preventDefault(); return false; });
+            });
 
+            $element.off("click.bindTooltips")
+                .on("click.bindTooltips", function(event) {
+                    event.preventDefault();
+                });
         });
     };
 })(imgvwr);
