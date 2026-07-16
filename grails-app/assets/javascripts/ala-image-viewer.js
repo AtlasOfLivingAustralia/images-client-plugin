@@ -1161,6 +1161,12 @@ var imgvwr = {};
                     existingPopover.dispose();
                 }
 
+                // Remove any previously registered handler.
+                $(element).off(".imageTagsPopover");
+
+                var loading = false;
+                var loaded = false;
+
                 const popover = new bootstrap.Popover(element, {
                     content: "Loading...",
                     html: true,
@@ -1171,22 +1177,37 @@ var imgvwr = {};
                     customClass: "image-tags-popover"
                 });
 
-                element.addEventListener("show.bs.popover", function () {
-                    popover.setContent({
-                        ".popover-body": "Loading..."
-                    });
-                    $.ajax(imageServiceBaseUrl + "/image/imageTagsTooltipFragment/" + imageId)
-                        .done(function (content) {
-                            popover.setContent({
-                                ".popover-body": content
+                $(element).on(
+                    "mouseenter.imageTagsPopover focusin.imageTagsPopover",
+                    function() {
+                        if (loading || loaded) {
+                            return;
+                        }
+
+                        loading = true;
+
+                        $.ajax(
+                            imageServiceBaseUrl +
+                            "/image/imageTagsTooltipFragment/" +
+                            imageId
+                        )
+                            .done(function(content) {
+                                loaded = true;
+
+                                popover.setContent({
+                                    ".popover-body": content
+                                });
+                            })
+                            .fail(function(xhr, status, error) {
+                                popover.setContent({
+                                    ".popover-body": status + ": " + error
+                                });
+                            })
+                            .always(function() {
+                                loading = false;
                             });
-                        })
-                        .fail(function (xhr, status, error) {
-                            popover.setContent({
-                                ".popover-body": status + ": " + error
-                            });
-                        });
-                });
+                    }
+                );
             }
         });
     };
