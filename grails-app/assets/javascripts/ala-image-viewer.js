@@ -1166,7 +1166,7 @@ var imgvwr = {};
                     html: true,
                     sanitize: false,
                     placement: "top",
-                    trigger: "click",
+                    trigger: "hover",
                     container: "body",
                     customClass: "image-tags-popover"
                 });
@@ -1249,7 +1249,7 @@ var imgvwr = {};
             new bootstrap.Popover(element, {
                 container: "body",
                 placement: placement,
-                trigger: "click",
+                trigger: "hover",
                 html: true,
                 customClass: "image-tags-popover",
                 content: function() {
