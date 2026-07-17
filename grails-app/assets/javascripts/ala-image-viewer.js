@@ -1153,7 +1153,8 @@ var imgvwr = {};
     lib.bindImageTagTooltips = function() {
         $(".image-tags-button").each(function() {
             var element = this;
-            var imageId = $(element).closest("[imageId]").attr("imageId");
+            var container = $(element).closest("[data-image-id], [imageId]");
+            var imageId = container.data("image-id") || container.attr("imageId");
             if (imageId) {
                 var existingPopover = bootstrap.Popover.getInstance(element);
 
