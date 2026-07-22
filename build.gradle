@@ -1,6 +1,5 @@
 buildscript {
     repositories {
-        mavenLocal()
         maven { url "https://nexus.ala.org.au/content/groups/public/" }
         maven { url "https://repo.grails.org/grails/core" }
         gradlePluginPortal()
@@ -51,17 +50,6 @@ dependencies {
     console "org.apache.grails:grails-console"
     profile "org.apache.grails.profiles:web-plugin"
     implementation "cloud.wondrify:asset-pipeline-grails:$assetPipelineVersion"
-
-    // Legacy Apache Commons HttpClient 3.x (HttpClient/HttpStatus/PostMethod) used by the
-    // *WebService classes, and Apache HttpComponents 4.x (org.apache.http.entity.ContentType)
-    // referenced by ImageClientController.
-    implementation "commons-httpclient:commons-httpclient:3.1"
-    implementation "org.apache.httpcomponents:httpclient:4.5.13"
-    implementation("org.codehaus.groovy.modules.http-builder:http-builder:0.7.1") {
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'xml-apis', module: 'xml-apis'
-        exclude group: 'org.codehaus.groovy', module: 'groovy'
-    }
 
     testImplementation "org.apache.grails:grails-testing-support-web"
     testImplementation "org.mockito:mockito-core"

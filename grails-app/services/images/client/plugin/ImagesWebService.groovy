@@ -2,10 +2,20 @@ package images.client.plugin
 
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
-import groovyx.net.http.*
-import org.apache.commons.lang.StringUtils
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
+import java.time.Duration
 
 class ImagesWebService {
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build()
 
     def grailsApplication
 
@@ -70,35 +80,43 @@ class ImagesWebService {
     }
 
     def static getHeadStatus(String url) {
-        // url = URLEncoder.encode(url, "utf-8")
-        RESTClient c = new RESTClient(url)
         try {
-            HttpResponseDecorator response = c.head(path: '')
-            return response.status
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                    .build()
+            HttpResponse<Void> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding())
+            return response.statusCode()
         } catch (Exception ex) {
             System.err.println(url)
-            return ex.response?.status ?: 0
+            return 0
         }
     }
 
     static def postJSON(url, Map params) {
         def result = [:]
-        HTTPBuilder builder = new HTTPBuilder(url)
-        builder.request(Method.POST, ContentType.JSON) { request ->
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url as String))
+                    .timeout(Duration.ofSeconds(60))
+                    .header(HttpHeaders.CONTENT_TYPE, new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8).toString())
+                    .POST(HttpRequest.BodyPublishers.ofString(new JsonBuilder(params).toString()))
+                    .build()
 
-            requestContentType : 'application/JSON'
-            body = new JsonBuilder(params).toString()
-
-            response.success = {resp, message ->
-                result.status = resp.status
-                result.content = message
-            }
-
-            response.failure = {resp ->
-                result.status = resp.status
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString())
+            result.status = response.statusCode()
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                String body = response.body()
+                result.content = body ? new JsonSlurper().parseText(body) : null
+            } else {
                 result.error = "Error POSTing to ${url}"
             }
-
+        } catch (Exception ex) {
+            System.err.println(url)
+            System.err.println(ex.message)
+            result.status = 0
+            result.error = "Error POSTing to ${url}"
         }
         result
     }
@@ -163,7 +181,7 @@ class ImagesWebService {
         Map result = [ like: new HashSet(), dislike: new HashSet()]
         metadata?.each { it ->
             // prevent adding empty string as it will add an empty string item to set
-            if(StringUtils.isNotEmpty(it.value?.trim())){
+            if (it.value?.trim()) {
                 // user ids are comma separated
                 result[it.key].addAll(it.value?.split(','))
             }

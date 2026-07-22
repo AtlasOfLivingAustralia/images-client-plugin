@@ -1,14 +1,25 @@
 package images.client.plugin
 
 import grails.converters.JSON
-import org.apache.commons.httpclient.HttpClient
-import org.apache.commons.httpclient.methods.PostMethod
-import org.apache.commons.httpclient.methods.StringRequestEntity
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpTimeoutException
+import java.nio.charset.StandardCharsets
+import java.time.Duration
 
 /**
  * Created by koh032 on 2/03/2017.
  */
 class BieWebService {
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build()
+
     def grailsApplication
 
     private String getServiceUrl() {
@@ -35,13 +46,17 @@ class BieWebService {
         String jsonBody = (list as JSON).toString()
         def response = [:]
         try {
-            HttpClient client = new HttpClient();
-            PostMethod post = new PostMethod(url);
-            post.setRequestHeader('Authorization', grailsApplication.config.getProperty('bieService.apiKey'))
-            StringRequestEntity requestEntity = new StringRequestEntity(jsonBody, "application/json", "utf-8")
-            post.setRequestEntity(requestEntity)
-            int status = client.executeMethod(post);
-            String responseStr = post.getResponseBodyAsString();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(60))
+                    .header(HttpHeaders.CONTENT_TYPE, new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8).toString())
+                    .header("Authorization", grailsApplication.config.getProperty('bieService.apiKey') ?: "")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build()
+
+            HttpResponse<String> httpResponse = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString())
+            int status = httpResponse.statusCode()
+            String responseStr = httpResponse.body()
 
             if (!responseStr && status != 200) {
                 response = [text: "Error occurred while calling Bie update Images" + responseStr, status: status ]
@@ -50,7 +65,7 @@ class BieWebService {
             }
             log.info "${response.text} status: ${response.status}"
 
-        } catch (SocketTimeoutException e) {
+        } catch (HttpTimeoutException e) {
             String error = "Timed out calling web service. ${e.getMessage()} URL= ${url}. "
             log.error error
             response = [text: error, status: 500 ]

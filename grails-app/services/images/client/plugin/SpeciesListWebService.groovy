@@ -2,16 +2,25 @@ package images.client.plugin
 
 import grails.converters.JSON
 import groovy.json.JsonSlurper
-import org.apache.commons.httpclient.HttpClient
-import org.apache.commons.httpclient.HttpStatus
-import org.apache.commons.httpclient.methods.GetMethod
-import org.apache.commons.httpclient.methods.PostMethod
-import org.apache.commons.httpclient.methods.StringRequestEntity
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.web.context.request.RequestContextHolder
 
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpTimeoutException
+import java.nio.charset.StandardCharsets
+import java.time.Duration
+
 class SpeciesListWebService {
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build()
 
     def grailsApplication
     def authService
@@ -41,7 +50,7 @@ class SpeciesListWebService {
         log.info("Calling species list web service: " + getServiceUrl() + "ws/speciesListItemKvp/" + druid)
         List results = []
         def result = get(url,  grailsApplication.config.getProperty('speciesList.apiKey'))
-        if (result.status != HttpStatus.SC_OK) {
+        if (result.status != HttpStatus.OK.value()) {
             throw new IOException(result.text)
         }
         result.data.each {
@@ -77,30 +86,26 @@ class SpeciesListWebService {
     private post(String url, Object body, String apiKey) {
         def response = [:]
         try {
-            HttpClient client = new HttpClient();
-            PostMethod post = new PostMethod(url);
-            post.setRequestHeader('Authorization', apiKey)
-            if (RequestContextHolder.getRequestAttributes() != null) {
-                def user = authService.userDetails()
-
-                if (user) {
-                    post.setRequestHeader("X-ALA-userId", user.userId as String)
-                    post.setRequestHeader("Cookie", "ALA-Auth=${URLEncoder.encode(user.email, "UTF-8")}")
-                }
-            }
             String jsonBody = (body as JSON).toString()
-            StringRequestEntity requestEntity = new StringRequestEntity(jsonBody, "application/json", "utf-8")
-            post.setRequestEntity(requestEntity)
-            int status = client.executeMethod(post);
-            String responseStr = post.getResponseBodyAsString();
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(60))
+                    .header(HttpHeaders.CONTENT_TYPE, new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8).toString())
+                    .header("Authorization", apiKey ?: "")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+            applyUserHeaders(requestBuilder)
+
+            HttpResponse<String> httpResponse = HTTP_CLIENT.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
+            int status = httpResponse.statusCode()
+            String responseStr = httpResponse.body()
             def data = null
 
-            if (status >= HttpStatus.SC_OK && status <= HttpStatus.SC_ACCEPTED) {
+            if (status >= HttpStatus.OK.value() && status <= HttpStatus.ACCEPTED.value()) {
                 data = new JsonSlurper().parseText(responseStr)
             }
             response = [status: status, text: responseStr, data: data]
             log.debug "${response.text} status: ${response.status}"
-        } catch (SocketTimeoutException e) {
+        } catch (HttpTimeoutException e) {
             String error = "Timed out calling web service. ${e.getMessage()} URL= ${url}. "
             log.error error
             response = [text: error, status: 500 ]
@@ -115,27 +120,24 @@ class SpeciesListWebService {
     private get(String url, String apiKey) {
         def response = [:]
         try {
-            HttpClient client = new HttpClient();
-            GetMethod get = new GetMethod(url);
-            get.setRequestHeader('Authorization', apiKey)
-            if (RequestContextHolder.getRequestAttributes() != null) {
-                def user = authService.userDetails()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(60))
+                    .header("Authorization", apiKey ?: "")
+                    .GET()
+            applyUserHeaders(requestBuilder)
 
-                if (user) {
-                    get.setRequestHeader("X-ALA-userId", user.userId as String)
-                    get.setRequestHeader("Cookie", "ALA-Auth=${URLEncoder.encode(user.email, "UTF-8")}")
-                }
-            }
-            int status = client.executeMethod(get);
-            String responseStr = get.getResponseBodyAsString();
+            HttpResponse<String> httpResponse = HTTP_CLIENT.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
+            int status = httpResponse.statusCode()
+            String responseStr = httpResponse.body()
             def data = null
 
-            if (status == HttpStatus.SC_OK) {
+            if (status == HttpStatus.OK.value()) {
                 data = new JsonSlurper().parseText(responseStr)
             }
             response = [status: status, text: responseStr, data: data]
             log.debug "${response.text} status: ${response.status}"
-        } catch (SocketTimeoutException e) {
+        } catch (HttpTimeoutException e) {
             String error = "Timed out calling web service. ${e.getMessage()} URL= ${url}. "
             log.error error
             response = [text: error, status: 500 ]
@@ -145,5 +147,16 @@ class SpeciesListWebService {
             response = [text: error, status: 500]
         }
         return response
+    }
+
+    private void applyUserHeaders(HttpRequest.Builder requestBuilder) {
+        if (RequestContextHolder.getRequestAttributes() != null) {
+            def user = authService.userDetails()
+
+            if (user) {
+                requestBuilder.header("X-ALA-userId", user.userId as String)
+                requestBuilder.header("Cookie", "ALA-Auth=${URLEncoder.encode(user.email, "UTF-8")}")
+            }
+        }
     }
 }

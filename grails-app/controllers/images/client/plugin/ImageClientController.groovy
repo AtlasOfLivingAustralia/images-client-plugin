@@ -3,8 +3,8 @@ package images.client.plugin
 import au.org.ala.web.AuthService
 import grails.converters.JSON
 import grails.converters.XML
-import org.apache.commons.httpclient.HttpStatus
-import org.apache.http.entity.ContentType
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartRequest
 
@@ -90,12 +90,12 @@ class ImageClientController {
         if(params.id && userId){
             Map result = imagesWebService.userRating(params.id, userId)
             if(!result.error){
-                render text: result as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+                render text: result as grails.converters.JSON, contentType: MediaType.APPLICATION_JSON_VALUE
             } else {
-                render text: "An error occurred while looking up information", status: HttpStatus.SC_INTERNAL_SERVER_ERROR
+                render text: "An error occurred while looking up information", status: HttpStatus.INTERNAL_SERVER_ERROR.value()
             }
         } else {
-            render text: "You must be logged in and image id must be provided.", status: HttpStatus.SC_BAD_REQUEST
+            render text: "You must be logged in and image id must be provided.", status: HttpStatus.BAD_REQUEST.value()
         }
     }
 
@@ -105,10 +105,10 @@ class ImageClientController {
             if (!list) {
                 list = new ArrayList<String>()
             }
-            render text: list as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+            render text: list as grails.converters.JSON, contentType: MediaType.APPLICATION_JSON_VALUE
         } catch (Exception ex) {
             log.error("An error occurred while getting the preferred species image list", ex)
-            render text: "An error occurred while getting the preferred species image list.", status: HttpStatus.SC_INTERNAL_SERVER_ERROR
+            render text: "An error occurred while getting the preferred species image list.", status: HttpStatus.INTERNAL_SERVER_ERROR.value()
         }
     }
 
@@ -116,21 +116,21 @@ class ImageClientController {
         def result = [:]
         String userId = authService.getUserId()
         if (!userId) {
-            render status: HttpStatus.SC_BAD_REQUEST, text: "You must be logged in"
+            render status: HttpStatus.BAD_REQUEST.value(), text: "You must be logged in"
         } else {
             if (params.id && params.scientificName) {
                 result = speciesListWebService.saveImageToSpeciesList(params.scientificName, params.family, params.id)
-                if (result.status == HttpStatus.SC_OK || result.status == HttpStatus.SC_CREATED || result.status == HttpStatus.SC_ACCEPTED) {
+                if (result.status == HttpStatus.OK.value() || result.status == HttpStatus.CREATED.value() || result.status == HttpStatus.ACCEPTED.value()) {
                     if (result.data.every { it?.guid != null })
                         result = bieWebService.updateBieIndex(result.data)
                     else
-                        result = [status: HttpStatus.SC_CONFLICT, text: "Species list unable to match '${params.scientificName}'. The name/image has been stored in the list but is not available as a preferred image."]
+                        result = [status: HttpStatus.CONFLICT.value(), text: "Species list unable to match '${params.scientificName}'. The name/image has been stored in the list but is not available as a preferred image."]
                  }
             } else {
-                result = [status: HttpStatus.SC_BAD_REQUEST, text: "Save image to species list failed. Missing parameter id or scientific name. This should not happen. Please refresh and try again."]
+                result = [status: HttpStatus.BAD_REQUEST.value(), text: "Save image to species list failed. Missing parameter id or scientific name. This should not happen. Please refresh and try again."]
             }
         }
-        render text: result as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+        render text: result as grails.converters.JSON, contentType: MediaType.APPLICATION_JSON_VALUE
     }
 
     def likeImage() {
@@ -138,12 +138,12 @@ class ImageClientController {
         if(params.id && userId){
             Map result = imagesWebService.likeOrDislikeImage('LIKE', params.id, userId)
             if(!result.error){
-                render text: result as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+                render text: result as grails.converters.JSON, contentType: MediaType.APPLICATION_JSON_VALUE
             } else {
-                render text: "An error occurred while saving metadata to image", status: HttpStatus.SC_INTERNAL_SERVER_ERROR
+                render text: "An error occurred while saving metadata to image", status: HttpStatus.INTERNAL_SERVER_ERROR.value()
             }
         } else {
-            render text: "You must be logged in and image id must be provided.", status: HttpStatus.SC_BAD_REQUEST
+            render text: "You must be logged in and image id must be provided.", status: HttpStatus.BAD_REQUEST.value()
         }
     }
 
@@ -152,12 +152,12 @@ class ImageClientController {
         if(params.id && userId){
             Map result = imagesWebService.likeOrDislikeImage('DISLIKE', params.id, userId)
             if(!result.error){
-                render text: result as grails.converters.JSON, contentType: ContentType.APPLICATION_JSON
+                render text: result as grails.converters.JSON, contentType: MediaType.APPLICATION_JSON_VALUE
             } else {
-                render text: "An error occurred while saving metadata to image", status: HttpStatus.SC_INTERNAL_SERVER_ERROR
+                render text: "An error occurred while saving metadata to image", status: HttpStatus.INTERNAL_SERVER_ERROR.value()
             }
         } else {
-            render text: "You must be logged in and image id must be provided.", status: HttpStatus.SC_BAD_REQUEST
+            render text: "You must be logged in and image id must be provided.", status: HttpStatus.BAD_REQUEST.value()
         }
     }
 
