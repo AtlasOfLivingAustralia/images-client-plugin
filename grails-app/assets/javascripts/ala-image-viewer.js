@@ -331,14 +331,29 @@ var imgvwr = {};
         map_registry[target] = viewer;
 
         var urlMask = image.tileUrlPattern;
-        L.tileLayer(urlMask, {
+        var layer = L.tileLayer(urlMask, {
             maxNativeZoom: maxZoom,
             continuousWorld: true,
             tms: true,
             noWrap: true,
             bounds: bounds,
-            attribution: (opts.organisationName? opts.organisationName : 'Atlas of Living Australia')
-        }).addTo(viewer);
+            attribution: (opts.organisationName ? opts.organisationName : 'Atlas of Living Australia')
+        });
+
+        // Convert Leaflet tile coordinates to the Y coordinate format expected by the image service
+        var originalGetTileUrl = layer.getTileUrl;
+
+        layer.getTileUrl = function (coords) {
+            var imageTileCoords = {
+                x: coords.x,
+                y: -coords.y - 1,
+                z: coords.z
+            };
+
+            return originalGetTileUrl.call(this, imageTileCoords);
+        };
+
+        layer.addTo(viewer);
 
         if (opts.addImageInfo){
             var ImageInfoControl = L.Control.extend( {
