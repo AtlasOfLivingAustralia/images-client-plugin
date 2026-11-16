@@ -120,12 +120,16 @@ var imgvwr = {};
         _imageId = imageId;
         _scientificName = scientificName;
         _preferredImageStatus = false;
+        $(targetDiv)
+            .addClass("image-info-button")
+            .attr("imageId", imageId);
         if(options.imageServiceBaseUrl){
             lib.setImageServiceBaseUrl(options.imageServiceBaseUrl);
         }
         if(options.imageClientBaseUrl){
             lib.setImageClientBaseUrl(options.imageClientBaseUrl);
         }
+        lib.bindImageInfoTooltips();
 
         if (options.addPreferenceButton) {
             var checkSpeciesList = null;
@@ -1148,6 +1152,79 @@ var imgvwr = {};
         };
 
         lib.showModal(opts);
+    };
+
+    lib.bindImageInfoTooltips = function() {
+        $(".image-info-button").each(function() {
+            var element = this;
+            var container = $(element).closest("[data-image-id], [imageId]");
+            var imageId = container.data("image-id") || container.attr("imageId");
+
+            if (!imageId) {
+                return;
+            }
+
+            var existingPopover = bootstrap.Popover.getInstance(element);
+            if (existingPopover) {
+                existingPopover.dispose();
+            }
+
+            $(element).off(".imageInfoPopover");
+
+            var popover;
+            var request;
+            var hideTimeout;
+
+            function schedulePopoverHide() {
+                hideTimeout = setTimeout(function() {
+                    if (popover) {
+                        popover.hide();
+                    }
+                }, 200);
+            }
+
+            function createPopover(content) {
+                popover = new bootstrap.Popover(element, {
+                    content: content,
+                    html: true,
+                    trigger: "manual",
+                    container: "body",
+                    sanitize: false
+                });
+
+                $(element).on("inserted.bs.popover.imageInfoPopover", function() {
+                    var popoverElement = document.getElementById(element.getAttribute("aria-describedby"));
+                    if (popoverElement) {
+                        $(popoverElement)
+                            .on("mouseenter", function() {
+                                clearTimeout(hideTimeout);
+                            })
+                            .on("mouseleave", schedulePopoverHide);
+                    }
+                });
+            }
+
+            $(element)
+                .on("mouseenter.imageInfoPopover", function() {
+                    clearTimeout(hideTimeout);
+                    if (popover) {
+                        popover.show();
+                    } else if (!request) {
+                        request = $.ajax(imageServiceBaseUrl + "/image/imageTooltipFragment/" + imageId)
+                            .then(function(content) {
+                                createPopover(content);
+                            }, function(xhr, status, error) {
+                                createPopover(status + ": " + error);
+                            })
+                            .then(function() {
+                                if (element.matches(":hover")) {
+                                    popover.show();
+                                }
+                            });
+                    }
+                })
+                .on("mouseleave.imageInfoPopover", schedulePopoverHide);
+        });
     };
 
     lib.bindImageTagTooltips = function() {
