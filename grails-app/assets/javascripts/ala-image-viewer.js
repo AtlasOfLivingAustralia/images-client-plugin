@@ -120,12 +120,16 @@ var imgvwr = {};
         _imageId = imageId;
         _scientificName = scientificName;
         _preferredImageStatus = false;
+        $(targetDiv)
+            .addClass("image-info-button")
+            .attr("imageId", imageId);
         if(options.imageServiceBaseUrl){
             lib.setImageServiceBaseUrl(options.imageServiceBaseUrl);
         }
         if(options.imageClientBaseUrl){
             lib.setImageClientBaseUrl(options.imageClientBaseUrl);
         }
+        lib.bindImageInfoTooltips();
 
         if (options.addPreferenceButton) {
             var checkSpeciesList = null;
@@ -965,6 +969,7 @@ var imgvwr = {};
 
     lib.hideSubimages = function(){
         _imageOverlays.clearLayers();
+        _viewer.closePopup();
     }
 
     lib.toggleSubimages = function() {
@@ -1148,6 +1153,121 @@ var imgvwr = {};
         };
 
         lib.showModal(opts);
+    };
+
+    lib.bindImageInfoTooltips = function() {
+        $(".image-info-button").each(function() {
+            var element = this;
+            var container = $(element).closest("[data-image-id], [imageId]");
+            var imageId = container.data("image-id") || container.attr("imageId");
+
+            if (!imageId) {
+                return;
+            }
+
+            $(element).find(".leaflet-tile").each(function() {
+                var existingPopover = bootstrap.Popover.getInstance(this);
+                if (existingPopover) {
+                    existingPopover.dispose();
+                }
+            });
+            $(element).off(".imageInfoPopover");
+
+            var popover;
+            var contentPromise;
+            var hideTimeout;
+            var activeTile;
+
+            function schedulePopoverHide() {
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(function() {
+                    if (popover) {
+                        popover.hide();
+                    }
+                    activeTile = null;
+                }, 200);
+            }
+
+            function showPopover(tile, content) {
+                if (popover) {
+                    popover.dispose();
+                }
+
+                popover = new bootstrap.Popover(tile, {
+                    content: content,
+                    html: true,
+                    trigger: "manual",
+                    placement: "top",
+                    container: "body",
+                    sanitize: false
+                });
+
+                $(tile).one("inserted.bs.popover.imageInfoPopover", function() {
+                    var popoverElement = document.getElementById(tile.getAttribute("aria-describedby"));
+                    if (popoverElement) {
+                        $(popoverElement)
+                            .on("mouseenter", function() {
+                                clearTimeout(hideTimeout);
+                            })
+                            .on("mouseleave", schedulePopoverHide);
+                    }
+                });
+
+                popover.show();
+            }
+
+            function findTileAtPoint(event) {
+                var elements = document.elementsFromPoint(event.clientX, event.clientY);
+                for (var i = 0; i < elements.length; i++) {
+                    if (elements[i].classList.contains("leaflet-tile") && element.contains(elements[i])) {
+                        return elements[i];
+                    }
+                }
+                return null;
+            }
+
+            function loadContent() {
+                if (!contentPromise) {
+                    contentPromise = $.ajax(imageServiceBaseUrl + "/image/imageTooltipFragment/" + imageId)
+                        .then(function(content) {
+                            return content;
+                        }, function(xhr, status, error) {
+                            return status + ": " + error;
+                        });
+                }
+                return contentPromise;
+            }
+
+            $(element)
+                .on("mousemove.imageInfoPopover", function(event) {
+                    var tile = _imageOverlays.getLayers().length === 0
+                        ? findTileAtPoint(event)
+                        : null;
+
+                    if (!tile) {
+                        if (activeTile) {
+                            activeTile = null;
+                            schedulePopoverHide();
+                        }
+                        return;
+                    }
+
+                    clearTimeout(hideTimeout);
+                    if (activeTile === tile) {
+                        return;
+                    }
+
+                    activeTile = tile;
+                    loadContent().then(function(content) {
+                        if (activeTile === tile) {
+                            showPopover(tile, content);
+                        }
+                    });
+                })
+                .on("mouseleave.imageInfoPopover", function() {
+                    schedulePopoverHide();
+                });
+        });
     };
 
     lib.bindImageTagTooltips = function() {
