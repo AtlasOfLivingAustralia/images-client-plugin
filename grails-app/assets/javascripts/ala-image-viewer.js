@@ -969,6 +969,7 @@ var imgvwr = {};
 
     lib.hideSubimages = function(){
         _imageOverlays.clearLayers();
+        _viewer.closePopup();
     }
 
     lib.toggleSubimages = function() {
@@ -1164,36 +1165,45 @@ var imgvwr = {};
                 return;
             }
 
-            var existingPopover = bootstrap.Popover.getInstance(element);
-            if (existingPopover) {
-                existingPopover.dispose();
-            }
-
+            $(element).find(".leaflet-tile").each(function() {
+                var existingPopover = bootstrap.Popover.getInstance(this);
+                if (existingPopover) {
+                    existingPopover.dispose();
+                }
+            });
             $(element).off(".imageInfoPopover");
 
             var popover;
-            var request;
+            var contentPromise;
             var hideTimeout;
+            var activeTile;
 
             function schedulePopoverHide() {
+                clearTimeout(hideTimeout);
                 hideTimeout = setTimeout(function() {
                     if (popover) {
                         popover.hide();
                     }
+                    activeTile = null;
                 }, 200);
             }
 
-            function createPopover(content) {
-                popover = new bootstrap.Popover(element, {
+            function showPopover(tile, content) {
+                if (popover) {
+                    popover.dispose();
+                }
+
+                popover = new bootstrap.Popover(tile, {
                     content: content,
                     html: true,
                     trigger: "manual",
+                    placement: "top",
                     container: "body",
                     sanitize: false
                 });
 
-                $(element).on("inserted.bs.popover.imageInfoPopover", function() {
-                    var popoverElement = document.getElementById(element.getAttribute("aria-describedby"));
+                $(tile).one("inserted.bs.popover.imageInfoPopover", function() {
+                    var popoverElement = document.getElementById(tile.getAttribute("aria-describedby"));
                     if (popoverElement) {
                         $(popoverElement)
                             .on("mouseenter", function() {
@@ -1202,28 +1212,61 @@ var imgvwr = {};
                             .on("mouseleave", schedulePopoverHide);
                     }
                 });
+
+                popover.show();
+            }
+
+            function findTileAtPoint(event) {
+                var elements = document.elementsFromPoint(event.clientX, event.clientY);
+                for (var i = 0; i < elements.length; i++) {
+                    if (elements[i].classList.contains("leaflet-tile") && element.contains(elements[i])) {
+                        return elements[i];
+                    }
+                }
+                return null;
+            }
+
+            function loadContent() {
+                if (!contentPromise) {
+                    contentPromise = $.ajax(imageServiceBaseUrl + "/image/imageTooltipFragment/" + imageId)
+                        .then(function(content) {
+                            return content;
+                        }, function(xhr, status, error) {
+                            return status + ": " + error;
+                        });
+                }
+                return contentPromise;
             }
 
             $(element)
-                .on("mouseenter.imageInfoPopover", function() {
-                    clearTimeout(hideTimeout);
-                    if (popover) {
-                        popover.show();
-                    } else if (!request) {
-                        request = $.ajax(imageServiceBaseUrl + "/image/imageTooltipFragment/" + imageId)
-                            .then(function(content) {
-                                createPopover(content);
-                            }, function(xhr, status, error) {
-                                createPopover(status + ": " + error);
-                            })
-                            .then(function() {
-                                if (element.matches(":hover")) {
-                                    popover.show();
-                                }
-                            });
+                .on("mousemove.imageInfoPopover", function(event) {
+                    var tile = _imageOverlays.getLayers().length === 0
+                        ? findTileAtPoint(event)
+                        : null;
+
+                    if (!tile) {
+                        if (activeTile) {
+                            activeTile = null;
+                            schedulePopoverHide();
+                        }
+                        return;
                     }
+
+                    clearTimeout(hideTimeout);
+                    if (activeTile === tile) {
+                        return;
+                    }
+
+                    activeTile = tile;
+                    loadContent().then(function(content) {
+                        if (activeTile === tile) {
+                            showPopover(tile, content);
+                        }
+                    });
                 })
-                .on("mouseleave.imageInfoPopover", schedulePopoverHide);
+                .on("mouseleave.imageInfoPopover", function() {
+                    schedulePopoverHide();
+                });
         });
     };
 
